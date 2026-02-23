@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>26년 제안 현황 대시보드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --text: #e8eaf6;
+    --text2: #8892b0;
+    --text3: #4a5280;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #e8eaf6, #4f8ef7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-left p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .date-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .summary-card.total::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .summary-card.done::before { background: var(--green); }
+  .summary-card.progress::before { background: var(--yellow); }
+  .summary-card.deadline::before { background: var(--red); }
+  .summary-card .label {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .summary-card .value {
+    font-size: 32px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .summary-card.total .value { color: var(--accent); }
+  .summary-card.done .value { color: var(--green); }
+  .summary-card.progress .value { color: var(--yellow); }
+  .summary-card.deadline .value { color: var(--red); font-size: 20px; }
+  .summary-card .sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+  }
+
+  /* 탭 */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+  .tab {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .tab:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* 과제 카드 */
+  .proposal-list { display: flex; flex-direction: column; gap: 10px; }
+  .proposal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .proposal-card:hover { border-color: var(--accent); transform: translateX(3px); }
+  .proposal-card.active {
+    border-color: var(--yellow);
+    background: linear-gradient(135deg, #1a1d27, #1f2237);
+  }
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.done { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.progress {
+    background: var(--yellow);
+    box-shadow: 0 0 8px var(--yellow);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .proposal-info { flex: 1; min-width: 0; }
+  .proposal-agency { font-size: 10px; color: var(--text3); font-family: 'JetBrains Mono', monospace; margin-bottom: 3px; }
+  .proposal-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proposal-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .proposal-right { text-align: right; flex-shrink: 0; }
+  .status-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+  .status-badge.done { background: rgba(52,211,153,0.12); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .status-badge.progress { background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+  .deadline-text { font-size: 11px; color: var(--text3); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .deadline-text.urgent { color: var(--red); }
+
+  /* 담당자 테이블 */
+  .task-table { width: 100%; border-collapse: collapse; }
+  .task-table th {
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.5px;
+  }
+  .task-table td {
+    font-size: 13px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(46,51,80,0.5);
+    vertical-align: middle;
+  }
+  .task-table tr:last-child td { border-bottom: none; }
+  .task-table tr:hover td { background: rgba(79,142,247,0.04); }
+
+  .task-name { color: var(--text); font-weight: 500; }
+  .task-person {
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* 상태 셀렉트 */
+  .state-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 11px;
+    font-family: 'Pretendard', sans-serif;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .state-select:hover { border-color: var(--accent); }
+  .state-select.s-todo { color: var(--text3); }
+  .state-select.s-doing { color: var(--yellow); }
+  .state-select.s-review { color: var(--accent); }
+  .state-select.s-done { color: var(--green); }
+
+  /* 사이드바 */
+  .sidebar { display: flex; flex-direction: column; gap: 14px; }
+  .side-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .dday-card {
+    background: linear-gradient(135deg, #1e2240, #1a1d27);
+    border-color: rgba(79,142,247,0.3);
+  }
+  .dday-number {
+    font-size: 48px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--red);
+    line-height: 1;
+    margin: 8px 0 4px;
+  }
+  .dday-label { font-size: 12px; color: var(--text2); }
+  .dday-date {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    line-height: 1.8;
+  }
+
+  .progress-item { margin-bottom: 14px; }
+  .progress-item:last-child { margin-bottom: 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+  .progress-label span:first-child { color: var(--text2); }
+  .progress-label span:last-child { color: var(--text); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .progress-bar { height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; }
+  .fill-green { background: var(--green); }
+  .fill-yellow { background: var(--yellow); }
+  .fill-blue { background: var(--accent); }
+
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+  .check-item { display: flex; align-items: center; gap: 10px; font-size: 12px; cursor: pointer; }
+  .check-box {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .check-box.checked { background: var(--green); border-color: var(--green); }
+  .check-box.checked::after { content: '✓'; font-size: 10px; color: #0f1117; font-weight: 700; }
+  .check-box:not(.checked):hover { border-color: var(--accent); }
+  .check-text { color: var(--text2); }
+  .check-text.checked { color: var(--text3); text-decoration: line-through; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>26년 제안 현황</h1>
+    <p>총 5개 과제 · 마지막 업데이트: 2026.02.23</p>
+  </div>
+  <div class="date-badge" id="today-date">—</div>
+</div>
+
+<div class="summary-grid">
+  <div class="summary-card total">
+    <div class="label">전체 과제</div>
+    <div class="value">5</div>
+    <div class="sub">2026년 신규 제안</div>
+  </div>
+  <div class="summary-card done">
+    <div class="label">제안 완료</div>
+    <div class="value">4</div>
+    <div class="sub">KOCCA, ITP 등</div>
+  </div>
+  <div class="summary-card progress">
+    <div class="label">작성 중</div>
+    <div class="value">1</div>
+    <div class="sub">KMDF 근골격</div>
+  </div>
+  <div class="summary-card deadline">
+    <div class="label">마감까지</div>
+    <div class="value" id="dday-summary">—</div>
+    <div class="sub">2026.03.09 16:00</div>
+  </div>
+</div>
+
+<div class="main-grid">
+  <div>
+    <!-- 탭 -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('proposals', this)">과제 목록</button>
+      <button class="tab" onclick="switchTab('tasks', this)">담당자 분배</button>
+    </div>
+
+    <!-- 과제 목록 탭 -->
+    <div class="tab-content active" id="tab-proposals">
+      <div class="proposal-list">
+        <div class="proposal-card active">
+          <div class="status-dot progress"></div>
+          <div class="proposal-info">
+            <div class="proposal-agency">범부처의료기기연구개발사업단 (KMDF)</div>
+            <div class="proposal-name">근골격 질환 대상 생체신호 반응형 협업지능 스마트 웨어러블 시스템 개발</div>
+            <div class="proposal-sub">②제품개발 · 총 30억 원 이내 · 4년</div>
+          </div>
+          <div class="proposal-right">
+            <div class="status-badge progress">✦ 작성 중</div>
+            <div class="deadline-text urgent">마감 03.09(월)</div>
+          </div>
+        </div>
+        <div class="proposal-card">
+          <div class="status-dot done"></div>
+          <div class="proposal-info">
+            <div class="proposal-agency">콘텐츠진흥원 (콘진원)</div>
+            <div class="proposal-name">콘진원 과제</div>
+            <div class="proposal-sub">2026년 신규 지원</div>
+          </div>
+          <div class="proposal-right">
+            <div class="status-badge done">✓ 제안 완료</div>
+            <div class="deadline-text">—</div>
+          </div>
+        </div>
+        <div class="proposal-card">
+          <div class="status-dot done"></div>
+          <div class="proposal-info">
+            <div class="proposal-agency">콘텐츠진흥원 (KOCCA)</div>
+            <div class="proposal-name">2026-KOCCA-36 토론과소통과제</div>
+            <div class="proposal-sub">2026년 신규 지원</div>
+          </div>
+          <div class="proposal-right">
+            <div class="status-badge done">✓ 제안 완료</div>
+            <div class="deadline-text">—</div>
+          </div>
+        </div>
+        <div class="proposal-card">
+          <div class="status-dot done"></div>
+          <div class="proposal-info">
+            <div class="proposal-agency">정보통신기획평가원 (IITP)</div>
+            <div class="proposal-name">29번과제 (콘텐츠 41번)</div>
+            <div class="proposal-sub">2026년 신규 지원</div>
+          </div>
+          <div class="proposal-right">
+            <div class="status-badge done">✓ 제안 완료</div>
+            <div class="deadline-text">—</div>
+          </div>
+        </div>
+        <div class="proposal-card">
+          <div class="status-dot done"></div>
+          <div class="proposal-info">
+            <div class="proposal-agency">정보통신기획평가원 (IITP)</div>
+            <div class="proposal-name">27번 (39과제) 감정감성AI모델생성학습데이터셋구축기술개발</div>
+            <div class="proposal-sub">2026년 신규 지원</div>
+          </div>
+          <div class="proposal-right">
+            <div class="status-badge done">✓ 제안 완료</div>
+            <div class="deadline-text">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 담당자 분배 탭 -->
+    <div class="tab-content" id="tab-tasks">
+      <table class="task-table">
+        <thead>
+          <tr>
+            <th>파트</th>
+            <th>담당자</th>
+            <th>진행 상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="task-name">연구개발계획서 본문 작성</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+          <tr>
+            <td class="task-name">미충족의료수요 기반 의료제품설계서</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+          <tr>
+            <td class="task-name">사업화 계획 (성과활용 섹션)</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+          <tr>
+            <td class="task-name">임상의 역할 기술</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+          <tr>
+            <td class="task-name">특허 대응전략 수립</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+          <tr>
+            <td class="task-name">재무제표·서류 취합</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+          <tr>
+            <td class="task-name">IRIS 전산 업로드</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+          <tr>
+            <td class="task-name">기관 담당자 승인</td>
+            <td class="task-person">000</td>
+            <td><select class="state-select s-todo" onchange="updateState(this)">
+              <option value="todo">🔲 미시작</option>
+              <option value="doing">✏️ 작성 중</option>
+              <option value="review">👀 검토 중</option>
+              <option value="done">✅ 완료</option>
+            </select></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 사이드바 -->
+  <div class="sidebar">
+    <div class="side-card dday-card">
+      <div class="section-title">KMDF 접수 마감</div>
+      <div class="dday-number" id="dday-num">—</div>
+      <div class="dday-label">days remaining</div>
+      <div class="dday-date">
+        📅 2026.03.09 (월) 16:00<br>
+        🏛 기관승인 → 03.10 (화) 16:00
+      </div>
+    </div>
+
+    <div class="side-card">
+      <div class="section-title" style="margin-bottom:16px">전체 완료율</div>
+      <div class="progress-item">
+        <div class="progress-label"><span>전체 제안</span><span>4/5</span></div>
+        <div class="progress-bar"><div class="progress-fill fill-blue" style="width:80%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label"><span>제안 완료</span><span>4건</span></div>
+        <div class="progress-bar"><div class="progress-fill fill-green" style="width:80%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label"><span>작성 중</span><span>1건</span></div>
+        <div class="progress-bar"><div class="progress-fill fill-yellow" style="width:20%"></div></div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <div class="section-title" style="margin-bottom:14px">KMDF 서류 체크</div>
+      <div class="checklist">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">연구개발계획서 본문 작성</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">미충족의료수요 의료제품설계서</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">동시수행 과제 수 확인서</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">재무제표 ('22~'24년)</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">기업부설연구소 확인서</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">기술기여도 신청서</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">IRIS 전산 업로드 완료</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-text">기관 담당자 승인 완료</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const now = new Date();
+  document.getElementById('today-date').textContent =
+    now.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', weekday:'short' });
+
+  const deadline = new Date('2026-03-09T16:00:00');
+  const diff = deadline - now;
+  const days = Math.ceil(diff / (1000*60*60*24));
+  const ddayText = days > 0 ? `D-${days}` : days === 0 ? 'D-DAY' : `D+${Math.abs(days)}`;
+  document.getElementById('dday-num').textContent = ddayText;
+  document.getElementById('dday-summary').textContent = ddayText;
+
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function updateState(sel) {
+    sel.className = 'state-select';
+    const map = { todo:'s-todo', doing:'s-doing', review:'s-review', done:'s-done' };
+    sel.classList.add(map[sel.value]);
+  }
+
+  function toggleCheck(item) {
+    const box = item.querySelector('.check-box');
+    const text = item.querySelector('.check-text');
+    box.classList.toggle('checked');
+    text.classList.toggle('checked');
+  }
+</script>
+</body>
+</html>
